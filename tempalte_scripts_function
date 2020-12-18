@@ -1,0 +1,149 @@
+#!/bin/bash
+
+function get_value()
+{
+  if [ $# -lt 2 ]; then
+    echo "Usage: ${FUNCNAME} <name> <filepath>"
+    exit 1
+  fi
+  if [ ! -f $2 ];then
+    echo "Error: ${FUNCNAME} $2 file does not exist"
+    exit 1
+  fi
+  local value_line=$(grep -v "^\s*#" $2 | grep $1)
+  local value=$(echo -e "${value_line//$1=/}" | xargs)
+  echo ${value}
+}
+
+function get_value_with_default()
+{
+  if [ $# -lt 3 ]; then
+    echo "Usage: ${FUNCNAME} <name> <filepath> <default value>"
+    exit 1
+  fi
+  if [ ! -f $2 ];then
+    echo "Error: ${FUNCNAME} $2 file does not exist"
+    exit 1
+  fi
+  local value_line=$(grep -v "^\s*#" $2 | grep $1)
+  local value=$(echo -e "${value_line//$1=/}" | xargs)
+  if [ -n "${value}" ];then
+    local value_with_default=${value}
+  else
+    local value_with_default=$3
+  fi
+  echo ${value_with_default}
+}
+
+function get_load_mode()
+{
+  if [ $# -lt 1 ]; then
+    echo "Usage: ${FUNCNAME} <filepath>"
+    exit 1
+  fi
+  if [ ! -f $1 ];then
+    echo "Error: ${FUNCNAME} $2 file does not exist"
+    exit 1
+  fi
+  local value=$(get_value PARTITION_COL $1)
+  if [ -n "${value}" ];then
+    local mode="increment"
+  else
+    local mode="overwrite"
+  fi
+  echo ${mode}
+
+}
+
+function update_value()
+{
+  if [ $# -lt 3 ]; then
+    echo "Usage: ${FUNCNAME} <name> <filepath> <value>"
+    exit 1
+  fi
+  if [ ! -f $2 ];then
+    echo "Error: ${FUNCNAME} $2 file does not exist"
+    exit 1
+  fi
+  sed -i "s|^${1}=|#${1}=|g" ${2}
+  echo "${1}=\"${3}\"" >> ${2}
+}
+
+function get_month_first_date_defore()
+{
+  if [ $# -lt 1 ]; then
+    echo "Usage: ${FUNCNAME} <value>"
+    exit 1
+  fi
+  local first_date=`date "+%Y-%m-%d" -d "-${1} month -$(($(date +%d)-1)) days"`
+  echo "${first_date} 00:00:00"
+}
+
+function get_month_first_date_after()
+{
+  if [ $# -lt 1 ]; then
+    echo "Usage: ${FUNCNAME} <value>"
+    exit 1
+  fi
+  local first_date=`date "+%Y-%m-%d" -d "-${1} month +$(($(date +%d)-1)) days"`
+  echo "${first_date} 00:00:00"
+}
+
+
+function get_month_first_date_defore_by_date()
+{
+  if [ $# -lt 2 ]; then
+    echo "Usage: ${FUNCNAME} \"2020-01-01 00:00:00\"  <value>"
+    exit 1
+  fi
+  local day_date=`date "+%Y-%m-%d" -d "$1"`
+  local first_date=`date "+%Y-%m-%d" -d "${day_date} -${2} month -$(($(date +%d -d ${day_date})-1)) days"`
+  echo "${first_date} 00:00:00"
+}
+
+function get_month_first_date_after_by_date()
+{
+  if [ $# -lt 2 ]; then
+    echo "Usage: ${FUNCNAME} \"2020-01-01 00:00:00\"  <value>"
+    exit 1
+  fi
+  local day_date=`date "+%Y-%m-%d" -d "$1"`
+  local first_date=`date "+%Y-%m-%d" -d "${day_date} +${2} month -$(($(date +%d -d ${day_date})-1)) days"`
+  echo "${first_date} 00:00:00"
+}
+
+function add_day()
+{
+  if [ $# -lt 2 ]; then
+    echo "Usage: ${FUNCNAME} \"2020-01-01 00:00:00\"  <value>"
+    exit 1
+  fi
+  local day_date=`date "+%Y-%m-%d" -d "$1"`
+  local result_date=`date "+%Y-%m-%d" -d "${day_date} +${2} day"`
+  echo "${result_date} 00:00:00"
+}
+
+function sub_day()
+{
+  if [ $# -lt 2 ]; then
+    echo "Usage: ${FUNCNAME} \"2020-01-01 00:00:00\"  <value>"
+    exit 1
+  fi
+  local day_date=`date "+%Y-%m-%d" -d "$1"`
+  local result_date=`date "+%Y-%m-%d" -d "${day_date} -${2} day"`
+  echo "${result_date} 00:00:00"
+}
+
+function get_first_last_value()
+{
+  if [ $# -lt 4 ]; then
+    echo "Usage: ${FUNCNAME} <type> <days> <database> <table> <column>"
+    exit 1
+  fi
+  if [ "month" == $1 ];then
+    local first_last_value=$(impala-shell -B -q "invalidate metadata ${3}.${4};SELECT ADD_MONTHS(TRUNC(MIN(${5}),'month'),2) FROM ${3}.${4};")
+  else
+    local first_last_value=$(impala-shell -B -q "invalidate metadata ${3}.${4};SELECT DATE_ADD(TRUNC(MIN(${5}),'dd'),${2}) FROM ${3}.${4}")
+  fi
+  echo ${first_last_value}
+}
