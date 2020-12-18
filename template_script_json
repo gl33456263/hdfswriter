@@ -1,0 +1,122 @@
+increment
+
+{
+	"job": {
+	`	"content": [
+			{
+				"reader": {
+					"name": "oraclereader",
+					"parameter": {
+						"column": ["${source_col}"],
+						"where": "${where}",
+						"splitPk": "${split_pk}",
+						"connection": [
+							{
+								"jdbcUrl": ['${jdbc_url}'],
+								"table": ['${source_table}'],
+								"schema": "${schema}"
+							}
+						],
+						"username": "${username}",
+						"password": "${password}"
+					}
+				},
+				"writer": {
+					"name": "hdfswriter",
+					"parameter": {
+						"column": [
+							${target_type}
+							],
+						"fieldDelimiter": "\u0001",
+						"fileName": "${target_table}",
+						"fileType": "orc",
+						"compress": "SNAPPY",
+						"path": "/user/hive/warehouse/${target_db}/${target_table}",
+						"writeMode": "nonConflict",
+				
+						"defaultFS": "hdfs://nameservice1",
+						"hadoopConfig": {
+						"dfs.nameservices": "nameservice1",
+						"dfs.ha.namenodes.nameservice1": "namenode110,namenode127",
+						"dfs.namenode.rpc-address.nameservice1.namenode110": "pocdt01:8020",
+						"dfs.namenode.rpc-address.nameservice1.namenode127": "pocdt02:8020",
+						"dfs.client.failover.proxy.provider.nameservice1": "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider"
+						}
+				
+					}
+				}
+			}
+		],
+		"entry": {
+			"jvm": "-Xms${jvm_size} -Xmx${jvm_size}"
+		},
+		"setting": {
+			"speed": {
+				"channel": "${channel_size}"
+			}
+		}
+	}
+}
+
+
+
+
+overwrite
+
+
+{
+	"job": {
+		"content": [
+			{
+				"reader": {
+					"name": "oraclereader",
+					"parameter": {
+						"column": ["${source_col}"],
+						"splitPk": "${split_pk}",
+						"connection": [
+							{
+								"jdbcUrl": ['${jdbc_url}'],
+								"table": ['${source_table}'],
+								"schema": "${schema}"
+							}
+						],
+						"username": "${username}",
+						"password": "${password}"
+					}
+				},
+				"writer": {
+					"name": "hdfswriter",
+					"parameter": {
+						"column": [
+							${target_type}
+							],
+						"fieldDelimiter": "\u0001",
+						"fileName": "${target_table}",
+						"fileType": "orc",
+						"compress": "SNAPPY",
+						"path": "/user/hive/warehouse/${target_db}/${target_table}",
+						"writeMode": "nonConflict",
+				
+						"defaultFS": "hdfs://nameservice1",
+						"hadoopConfig": {
+						"dfs.nameservices": "nameservice1",
+						"dfs.ha.namenodes.nameservice1": "namenode110,namenode127",
+						"dfs.namenode.rpc-address.nameservice1.namenode110": "pocdt01:8020",
+						"dfs.namenode.rpc-address.nameservice1.namenode127": "pocdt02:8020",
+						"dfs.client.failover.proxy.provider.nameservice1": "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider"
+						}
+				
+					}
+				}
+			}
+		],
+		"entry": {
+			"jvm": "-Xms${jvm_size} -Xmx${jvm_size}"
+		},
+		"setting": {
+			"speed": {
+				"channel": "${channel_size}"
+			}
+		}
+	}
+}
