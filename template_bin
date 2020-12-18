@@ -1,0 +1,47 @@
+create_table
+#!/bin/bash
+  BASE_PATH=$(cd `dirname $0`;pwd)
+CONF_DIR=${BASE_PATH}/../conf
+RESULT_FILE=${BASE_PATH}/create.sql
+echo "" > ${RESULT_FILE}
+
+for line in `ls ${CONF_DIR}/def_*.env`
+do
+  . ${line}
+  HIVE_COLUMN="$(echo ${TARGET_TYPE}|sed 's|{"name":"||g'|sed 's|","type":"| |g'|sed 's|"}||g')"
+  if [ -n ${PARTITION_COL} ];then
+    # increment
+    create_sql="CREATE EXTERNAL TABLE IF NOT EXISTS ${TARGET_DB}.${TARGET_TABLE}_staging(${HIVE_COLUMN}) STORED AS PARQUET TBLPROPERTIES ('parquet.compression'='SNAPPY');"
+    echo ${create_sql} >> ${RESULT_FILE}
+    create_sql="CREATE EXTERNAL TABLE IF NOT EXISTS ${TARGET_DB}.${TARGET_TABLE}(${HIVE_COLUMN},dt string) STORED AS PARQUET TBLPROPERTIES ('parquet.compression'='SNAPPY');"
+    echo ${create_sql} >> ${RESULT_FILE}
+  else
+    # overwrite
+    create_sql="CREATE EXTERNAL TABLE IF NOT EXISTS ${TARGET_DB}.${TARGET_TABLE}(${HIVE_COLUMN}) STORED AS PARQUET TBLPROPERTIES ('parquet.compression'='SNAPPY');"
+    echo ${create_sql} >> ${RESULT_FILE}
+  fi
+done
+
+datax_run
+
+#/bin/bash
+  BASE_PATH=$(cd `dirname $0`;pwd)
+CONF_PATH=${BASE_PATH}/../conf
+LOG_PATH=${BASE_PATH}/../logs
+TABLE_LIST=${BASE_PATH}/../batch_table
+DATAX=/opt/software/datax/bin/datax.py
+
+. ${BASE_PATH}/../scripts/_functions.sh
+
+
+
+for line in `cat ${TABLE_LIST}`
+do
+  def_file=${CONF_PATH}/def_${line}.env
+  if [ ! -f ${def_file} ];then
+    continue
+  fi
+  mode=$(get_load_mode ${def_file})
+  sh ${BASE_PATH}/../scripts/load_${mode}.sh ${def_file} > ${LOG_PATH}/`date "+%Y-%m-%d"`/${def_file}.log.`date "+%Y-%m-%d_%H:%M:%S"`
+done
+
