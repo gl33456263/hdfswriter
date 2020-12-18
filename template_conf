@@ -1,0 +1,31 @@
+def_lotnotice
+
+
+ORACLE_SCHEMA="DPAS"
+SOURCE_TABLE="LOTNOTICE_HISTORY"
+SOURCE_COL='"LOTNOTICE","LOT","PROCESS","PROCESSVERSION","ROUTESEQUENCE","ROUTEALTERNATE","ROUTE","STEPSEQUENCE","STEP","NOTICESEQUENCE","NOTICE","DISPLAYMATRIX","NOTICESTATUS","ENGINEERNAME","ISPASSWORDREQ","CREATEUSER","CREATETMST","LASTUPDATEUSER","LASTUPDATETMST","LASTEVENT","RTRTMST","LASTBACKUPTMST","LASTBACKUPUSER","LASTBACKUPACTION","PRODUCT","ROUTENAME","STEPNAME","USERNAME","EST_ARRV_PERIOD"'
+SPLIT_PK="LOTNOTICE"
+
+TARGET_DB="offspc.db"
+TARGET_TABLE="xxxx"
+TARGET_TYPE='{"name":"LOTNOTICE","type":"INT"},{"name":"LOT","type":"STRING"},{"name":"PROCESS","type":"STRING"},{"name":"PROCESSVERSION","type":"INT"},{"name":"ROUTESEQUENCE","type":"INT"},{"name":"ROUTEALTERNATE","type":"INT"},{"name":"ROUTE","type":"STRING"},{"name":"STEPSEQUENCE","type":"INT"},{"name":"STEP","type":"STRING"},{"name":"NOTICESEQUENCE","type":"INT"},{"name":"NOTICE","type":"STRING"},{"name":"DISPLAYMATRIX","type":"INT"},{"name":"NOTICESTATUS","type":"STRING"},{"name":"ENGINEERNAME","type":"STRING"},{"name":"ISPASSWORDREQ","type":"STRING"},{"name":"CREATEUSER","type":"STRING"},{"name":"CREATETMST","type":"TIMESTAMP"},{"name":"LASTUPDATEUSER","type":"STRING"},{"name":"LASTUPDATETMST","type":"TIMESTAMP"},{"name":"LASTEVENT","type":"STRING"},{"name":"RTRTMST","type":"TIMESTAMP"},{"name":"LASTBACKUPTMST","type":"TIMESTAMP"},{"name":"LASTBACKUPUSER","type":"STRING"},{"name":"LASTBACKUPACTION","type":"STRING"},{"name":"PRODUCT","type":"STRING"},{"name":"ROUTENAME","type":"STRING"},{"name":"STEPNAME","type":"STRING"},{"name":"USERNAME","type":"STRING"},{"name":"EST_ARRV_PERIOD","type":"INT"}'
+
+# partition column
+PARTITION_COL=""
+# [month/day]
+PARTITION_TYPE="day"
+
+MAX_PERIOD_DAYS=15
+
+LAST_VALUE=""
+
+
+
+set_env
+
+jdbcUrl="jdbc:oracle:thin:@//10.30.8.198:1521/AMAS"
+
+username=dpas
+password=dpas2
+
+
