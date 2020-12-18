@@ -1,0 +1,119 @@
+increment
+
+#!/bin/bash
+  BASE_PATH=$(cd `dirname $0`;pwd)
+PYTHON=/usr/bin/python2.7
+DATAX=/opt/software/datax/bin/datax.py
+
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <filepath>"
+  exit 1
+fi
+if [ ! -f $1 ];then
+  echo "Error: file does not exist"
+  exit 1
+fi
+def_file=$1
+. ${BASE_PATH}/_functions.sh
+. ${BASE_PATH}/../conf/set_env.sh
+
+SOURCE_TABLE=$(get_value SOURCE_TABLE ${def_file})
+PARTITION_COL=$(get_value PARTITION_COL ${def_file})
+PARTITION_TYPE=$(get_value_with_default PARTITION_TYPE ${def_file} day)
+MAX_PERIOD_DAYS=$(get_value_with_default MAX_PERIOD_DAYS ${def_file} 15)
+LAST_VALUE=$(get_value LAST_VALUE ${def_file})
+
+SOURCE_COL=$(get_value SOURCE_COL ${def_file})
+SPLIT_PK=$(get_value SPLIT_PK ${def_file})
+SCHEMA=$(get_value ORACLE_SCHEMA ${def_file})
+TARGET_TYPE=$(get_value TARGET_TYPE ${def_file})
+TARGET_DB=$(get_value TARGET_DB ${def_file})
+TARGET_TABLE=$(get_value TARGET_TABLE ${def_file})_staging
+JVM_SIZE=$(get_value_with_default JVM_SIZE ${def_file} 2g)
+CHANNEL_SIZE=$(get_value_with_default CHANNEL_SIZE ${def_file} 4)
+
+
+function run_job_with_where()
+{
+  if [ $# -lt 1 ]; then
+    echo "Usage: ${FUNCNAME} <where>"
+    exit 1
+  fi
+  ${PYTHON} ${DATAX} -p "-Djdbc_url=${jdbcUrl} -Dusername=${username} -Dpassword=${password} -Dsource_col=${SOURCE_COL} -Dwhere=${1} -Dsplit_pk=${SPLIT_PK} -Dsource_table=${SOURCE_TABLE} -Dschema=${SCHEMA} -Dtarget_type='${TARGET_TYPE}' -Dtarget_db=${TARGET_DB} -Dtarget_table=${TARGET_TABLE} -Djvm_size=${JVM_SIZE} -Dchannel_size=${CHANNEL_SIZE}" ${BASE_PATH}/json/o2h_increment.json
+}
+
+if [ "month" == ${PARTITION_TYPE} ];then
+  if [ ! -n ${LAST_VALUE} ];then
+    WHERE=" ${PARTITION_COL} >= (SELECT MIN(${PARTITION_COL}) FROM ${SOURCE_TABLE}) AND ${PARTITION_COL} < (SELECT ADD_MONTHS(TRUNC(MIN(${PARTITION_COL}),'mm'),2) FROM ${SOURCE_TABLE})"
+    run_job_with_where ${WHERE}
+    LAST_VALUE=$(get_first_last_value "month" ${MAX_PERIOD_DAYS} "${TARGET_DB%\.db}" "${TARGET_TABLE}" "${PARTITION_COL}")
+  elif [ $(date -d "${LAST_VALUE}" +%s) -ge $(date -d "$(get_month_first_date_defore 2)" +%s) ]
+  then
+    WHERE=" ${PARTITION_COL} >= TO_DATE('$(get_month_first_date_defore_by_date "${LAST_VALUE}" 2)','yyyy-mm-dd hh24:mi:ss') AND ${PARTITION_COL} < TO_DATE('$(date '+%Y-%m-%d 00:00:00')','yyyy-mm-dd hh24:mi:ss')"
+    run_job_with_where ${WHERE}
+    LAST_VALUE="$(get_month_first_date_defore 0)"
+  else
+    WHERE=" ${PARTITION_COL} >= TO_DATE('${LAST_VALUE}','yyyy-mm-dd hh24:mi:ss') AND ${PARTITION_COL} < TO_DATE('$(get_month_first_date_after_by_date "${LAST_VALUE}" 2)','yyyy-mm-dd hh24:mi:ss')"
+    run_job_with_where ${WHERE}
+    LAST_VALUE="$(get_month_first_date_after_by_date "${LAST_VALUE}" 2)"
+  fi
+else
+  if [ ! -n ${LAST_VALUE} ];then
+    WHERE=" ${PARTITION_COL} >= (SELECT MIN(${PARTITION_COL}) FROM ${SOURCE_TABLE}) AND ${PARTITION_COL} < (SELECT TRUNC(MIN(${PARTITION_COL})+${MAX_PERIOD_DAYS}) FROM ${SOURCE_TABLE})"
+    run_job_with_where ${WHERE}
+    LAST_VALUE=$(get_first_last_value "day" ${MAX_PERIOD_DAYS} "${TARGET_DB%\.db}" "${TARGET_TABLE}" "${PARTITION_COL}")
+  elif [ $(date -d "${LAST_VALUE}" +%s) -ge $(date -d "$(add_day "`date '+%Y-%m-%d %H:%M:%S'`" 2)" +%s) ]
+  then
+    WHERE=" ${PARTITION_COL} >= TO_DATE('$(sub_day ${LAST_VALUE} ${MAX_PERIOD_DAYS})','yyyy-mm-dd hh24:mi:ss')"
+    run_job_with_where ${WHERE}
+    LAST_VALUE="$(date '+%Y-%m-%d 00:00:00')"
+  else
+    WHERE=" ${PARTITION_COL} >= TO_DATE('${LAST_VALUE}','yyyy-mm-dd hh24:mi:ss') AND ${PARTITION_COL} < TO_DATE('$(add_day "${LAST_VALUE}" ${MAX_PERIOD_DAYS})','yyyy-mm-dd hh24:mi:ss')"
+    run_job_with_where ${WHERE}
+    LAST_VALUE="$(add_day "${LAST_VALUE}" ${MAX_PERIOD_DAYS})"
+  fi
+fi
+
+update_value LAST_VALUE ${def_file} "${LAST_VALUE}"
+
+
+
+
+
+
+
+overwrite
+
+
+#!/bin/bash
+  BASE_PATH=$(cd `dirname $0`;pwd)
+PYTHON=/usr/bin/python2.7
+DATAX=/opt/software/datax/bin/datax.py
+
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <filepath>"
+  exit 1
+fi
+if [ ! -f $1 ];then
+  echo "Error: file does not exist"
+  exit 1
+fi
+def_file=$1
+. ${BASE_PATH}/_functions.sh
+. ${BASE_PATH}/../conf/set_env.sh
+
+SOURCE_COL=$(get_value SOURCE_COL ${def_file})
+SPLIT_PK=$(get_value SPLIT_PK ${def_file})
+SOURCE_TABLE=$(get_value SOURCE_TABLE ${def_file})
+SCHEMA=$(get_value ORACLE_SCHEMA ${def_file})
+TARGET_TYPE=$(get_value TARGET_TYPE ${def_file})
+TARGET_DB=$(get_value TARGET_DB ${def_file})
+TARGET_TABLE=$(get_value TARGET_TABLE ${def_file})
+JVM_SIZE=$(get_value_with_default JVM_SIZE ${def_file} 1g)
+CHANNEL_SIZE=$(get_value_with_default CHANNEL_SIZE ${def_file} 1)
+
+
+${PYTHON} \
+${DATAX} \
+        -p "-Djdbc_url=${jdbcUrl} -Dusername=${username} -Dpassword=${password} -Dsource_col=${SOURCE_COL} -Dsplit_pk=${SPLIT_PK} -Dsource_table=${SOURCE_TABLE} -Dschema=${SCHEMA} -Dtarget_type='${TARGET_TYPE}' -Dtarget_db=${TARGET_DB} -Dtarget_table=${TARGET_TABLE} -Djvm_size=${JVM_SIZE} -Dchannel_size=${CHANNEL_SIZE}" \
+        ${BASE_PATH}/json/o2h_overwrite.json
